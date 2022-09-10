@@ -10,6 +10,7 @@
 #include <glm/gtc/constants.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/spline.hpp>
+#include <glm/gtx/rotate_vector.hpp>
 
 // project
 #include "application.hpp"
@@ -36,8 +37,26 @@ void basic_model::draw(const glm::mat4 &view, const glm::mat4 proj) {
 	glUniform3fv(glGetUniformLocation(shader, "uColor"), 1, value_ptr(color));
 
 	float scaleDivider = 20;
+	
+	
+	
+	vec3 pointDirection = normalize(timelinePointNext - timelinePoint);
+	cout << endl;
+	cout << "timelinePoint  X :" << timelinePoint.x << "	 Y :" << timelinePoint.y << "	 Z :" << timelinePoint.z << endl;
+	cout << "timelinePointNext  X :" << timelinePointNext.x << "	 Y :" << timelinePointNext.y << "	 Z :" << timelinePointNext.z << endl;
+	cout << endl;
+	//pointDirection = timelinePointNext;
+
+	//transformation = lookAt(timelinePoint, timelinePointNext, vec3())
+	
+	
+	transformation = translate(transformation, timelinePoint);
 	transformation = scale(transformation, vec3(1/scaleDivider));
-	transformation = translate(transformation, timelinePoint * vec3(scaleDivider));
+	//transformation = rotate(transformation, radians(90.0f), vec3(0,1,1));
+	//transformation = rotate(transformation, radians(-90.0f), vec3(1,0,0));
+	//transformation = rotate(transformation, radians(90.0f), vec3(0,1,1));
+	transformation *= orientation(normalize(pointDirection), vec3(1,0,0));
+
 	glUniformMatrix4fv(glGetUniformLocation(shader, "uModelViewMatrix"), 1, false, value_ptr(modelview * transformation));
 
 
@@ -86,30 +105,30 @@ void basic_spline::draw(const glm::mat4 &view, const glm::mat4 proj) {
 }
 
 vec3 basic_spline::calculateSplineInterpolation(vec3 P0,vec3 P1, vec3 P2, vec3 P3, float t) {
-//	for (int i = 0; i < splineDivisionSteps; i++){
 	vec3 point = 0.5f * ( (2.0f * P1)+ (-P0 + P2)*t + (2.0f * P0 - 5.0f *P1 + 4.0f * P2 - P3 ) * pow(t,2.0f) + (-P0 + 3.0f*P1 - 3.0f*P2 + P3) * pow(t,3.0f));
 	splinePointsInterpolated.push_back(point);
-	
-	//t += 1/splineDivisionSteps;
-	cout << "Interpolated Spline 	X: " << point.x << "	Y: " << point.y << "	Z: " << point.z << endl;
-	//}
+	//cout << "Interpolated Spline 	X: " << point.x << "	Y: " << point.y << "	Z: " << point.z << endl;
 
 	return point;
 }
 
-void basic_spline::setPoints(){
+void basic_spline::setPoints(int init){
 	mesh_builder spline;
 
-	initSpline_01();
+	if (init == 1){
+		initSpline_01();
+	} else if (init == 2) {
+		initSpline_02();
+	}
 
 	int j = 0;
-	for  (int k = 0; k < 5; k++) {
-	for (float i = 0.0; i <= 1.0; i = i + 0.10, j++) {
+	for  (int k = 0; k < 10; k++) {
+	for (float i = 0.0; i <= 1.0; i = i + 0.01, j++) {
 		spline.push_index(j);
-		
+		spline.push_vertex(mesh_vertex{calculateSplineInterpolation(splinePointsRaw[0+k],splinePointsRaw[1+k],splinePointsRaw[2+k],splinePointsRaw[3+k],i)   });
+		spline.push_index(j+1);
 		spline.push_vertex(mesh_vertex{calculateSplineInterpolation(splinePointsRaw[0+k],splinePointsRaw[1+k],splinePointsRaw[2+k],splinePointsRaw[3+k],i)   });
 		//spline.push_vertex(mesh_vertex{catmullRom(splinePointsRaw[0+k],splinePointsRaw[1+k],splinePointsRaw[2+k],splinePointsRaw[3+k],i)});
-		
 	}
 	}
 	gl_spline = spline.build();
@@ -121,25 +140,56 @@ void basic_spline::initSpline_01 () {
 	splinePointsInterpolated.clear();
 	//Spline Points
 	splinePointsRaw.push_back(vec3(0,0,0));
-	///**
+	splinePointsRaw.push_back(vec3(-0.25,0,0));
+	splinePointsRaw.push_back(vec3(0.5,0.5,0.5));
+	splinePointsRaw.push_back(vec3(0.75,0.75,0));
+	splinePointsRaw.push_back(vec3(1,1,0));
+	splinePointsRaw.push_back(vec3(1.5,0.5,0));
+	splinePointsRaw.push_back(vec3(2.0,2.0,0));
+	/**
+	splinePointsRaw.push_back(vec3(0,0,0));
 	splinePointsRaw.push_back(vec3(-0.25,0,0));
 	splinePointsRaw.push_back(vec3(0.5,0.5,0.5));
 	splinePointsRaw.push_back(vec3(0.75,0.75,0));
 	splinePointsRaw.push_back(vec3(1,1,0));
 	splinePointsRaw.push_back(vec3(1.5,1.5,0.5));
-	splinePointsRaw.push_back(vec3(2,2,0.5));
-	//*/
+	splinePointsRaw.push_back(vec3(1.5,1.5,1));
+	*/
+}
 
+void basic_spline::initSpline_02 () {
+	splinePointsRaw.clear();
+	splinePointsInterpolated.clear();
+	//Spline Points
+	
+	splinePointsRaw.push_back(vec3(0,0,0));
 	/**
+	splinePointsRaw.push_back(vec3(0.5,-0.5,0));
+	splinePointsRaw.push_back(vec3(1,-1,0));
+	splinePointsRaw.push_back(vec3(1.5,1,-2));
+	splinePointsRaw.push_back(vec3(2,-2,0));
+	splinePointsRaw.push_back(vec3(2.5,-2.5,0));
+	splinePointsRaw.push_back(vec3(3,-3,0));
+	*/
+	
 	splinePointsRaw.push_back(vec3(0.4,0.8,0));
 	splinePointsRaw.push_back(vec3(2.0,1.7,1.0));
 	splinePointsRaw.push_back(vec3(3.4,2.6,4.0));
 	splinePointsRaw.push_back(vec3(4.4,3.1,4.1));
 	splinePointsRaw.push_back(vec3(-1,3.0,3.0));
 	splinePointsRaw.push_back(vec3(5.0,2.0,5.0));
-	*/
+	
+}
 
 
+
+void basic_spline::calculateSegementLengths () {
+	splineLength = 0;
+	segmentLengths.clear();
+	float step = 0.01;
+	for(float f = 0.0; f < 1.0; f += step ){
+		
+	}
 }
 
 
@@ -157,11 +207,13 @@ Application::Application(GLFWwindow *window) : m_window(window) {
 
 	m_spline.shader = shader;
 	m_spline.color = vec3(0,1,0);
+	m_spline.splineDivisionSteps = splineSteps;
 	//m_spline.mesh.mode = GL_LINES;
 	//m_spline.initSpline_01();
 	
 	//gl_spline.initSpl
-	m_spline.setPoints();
+	m_spline.setPoints(1);
+	m_cam_spline.setPoints(2);
 
 }
 
@@ -192,24 +244,39 @@ void Application::render() {
 		* rotate(mat4(1), m_yaw,   vec3(0, 1, 0));
 
 
+	m_model.timelinePoint = m_spline.splinePointsInterpolated[m_model.timelineVal];
+	//if (m_model.timelineVal+2 <  m_spline.splinePointsInterpolated.size()-(1000)) {
+	m_model.timelinePointNext = m_spline.splinePointsInterpolated[m_model.timelineVal+2];
+//	}
+
+	if (animateCamera) {
+	view = lookAt(m_cam_spline.splinePointsInterpolated[m_model.timelineVal],m_model.timelinePoint, vec3(0,1,0));
+	translate(view,m_cam_spline.splinePointsInterpolated[m_model.timelineVal]);
+	}
+
+
 	// helpful draw options
 	if (m_show_grid) drawGrid(view, proj);
 	if (m_show_axis) drawAxis(view, proj);
 	glPolygonMode(GL_FRONT_AND_BACK, (m_showWireframe) ? GL_LINE : GL_FILL);
 
-	m_model.timelinePoint = m_spline.splinePointsInterpolated[m_model.timelineVal];
+	
 
 	// draw the model
 	m_model.draw(view, proj);
 	m_spline.draw(view,proj);
 	if (animateModel) {
-	m_model.timelineVal++;
-	if(m_model.timelineVal > m_spline.splinePointsInterpolated.size()) {
-		m_model.timelineVal = 0;
+	m_model.timelineVal+=animateSpeed;
+	
+	if(m_model.timelineVal > m_spline.splinePointsInterpolated.size()-(1040)) {
+		if (repeatAnimation) {
+			m_model.timelineVal = 0;
+		} else {
+			m_model.timelineVal = m_spline.splinePointsInterpolated.size()-1040;
+		}
+		
 	}
 	}
-	//cout<<m_model.timelineVal<<endl;
-	//cout << "TP	X: 	"<< m_model.timelinePoint.x << " Y: 	"<< m_model.timelinePoint.y << "Z: 	"<< m_model.timelinePoint.z << endl ;
 }
 
 
@@ -234,7 +301,15 @@ void Application::renderGUI() {
 	ImGui::SameLine();
 	if (ImGui::Button("Screenshot")) rgba_image::screenshot(true);
 	ImGui::Checkbox("Animate", &animateModel);
-	
+	ImGui::SameLine();
+	ImGui::Checkbox("Repeat Animation", &repeatAnimation);
+	ImGui::SameLine();
+	ImGui::Checkbox("Animate Camera", &animateCamera);
+	ImGui::SliderInt("Animation Speed", &animateSpeed, 0, 20);
+	ImGui::SliderInt("timeline", &m_model.timelineVal, 0, m_spline.splinePointsInterpolated.size()-1040);
+	if (ImGui::Button("Screenshot")) rgba_image::screenshot(true);
+
+
 	ImGui::Separator();
 
 	// example of how to use input boxes

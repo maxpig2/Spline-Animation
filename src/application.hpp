@@ -23,7 +23,7 @@ struct basic_model {
 	GLuint texture;
 	int timelineVal = 0;
 	glm::vec3 timelinePoint = glm::vec3(0,0,0);
-
+	glm::vec3 timelinePointNext = glm::vec3(0,0,0);
 
 
 	void draw(const glm::mat4 &view, const glm::mat4 proj);
@@ -39,12 +39,17 @@ struct basic_spline {
 	std::vector<glm::vec3> splinePointsInterpolated;
 	int splineDivisionSteps = 10;
 	cgra::gl_mesh gl_spline;
+	float splineLength = 0;
+	std::vector<glm::float32> segmentLengths;
 
 	void draw(const glm::mat4 &view, const glm::mat4 proj);
-	void setPoints();
+	void setPoints(int init);
 	glm::vec3 calculateSplineInterpolation(glm::vec3 P0, glm::vec3 P1, glm::vec3 P2, glm::vec3 P3, float t);
 
 	void initSpline_01();
+	void initSpline_02();
+
+	void calculateSegementLengths();
 
 
 };
@@ -59,9 +64,9 @@ private:
 	GLFWwindow *m_window;
 
 	// oribital camera
-	float m_pitch = .86;
-	float m_yaw = -.86;
-	float m_distance = 20;
+	float m_pitch = 1.12;
+	float m_yaw = .0;
+	float m_distance = 4.79;
 	glm::vec2 m_cam_pos;
 
 	// last input
@@ -74,11 +79,20 @@ private:
 	bool m_show_axis = false;
 	bool m_show_grid = false;
 	bool m_showWireframe = false;
+
+	//animation
 	bool animateModel = false;
+	bool repeatAnimation = false;
+	bool animateCamera = false;
+	int animateSpeed = 5;
+	float splineSteps = 10;
+
+
 
 	// geometry
 	basic_model m_model;
 	basic_spline m_spline;
+	basic_spline m_cam_spline;
 	
 
 public:
